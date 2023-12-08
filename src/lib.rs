@@ -81,8 +81,8 @@ fn copy_xsel(data: String) -> io::Result<()> {
     Ok(())
 }
 
-pub fn passmenu(rofi_args: &HashMap<String, Option<String>>, pass_entries: &Vec<String>) -> BoxResult<()> {
-    let output = run_rofi(rofi_args, pass_entries)?;
+pub fn passmenu(rofi_args: HashMap<String, Option<String>>, pass_entries: &Vec<String>) -> BoxResult<()> {
+    let output = run_rofi(&rofi_args, &pass_entries)?;
     let mut pass_entity = String::new();
     if output.status.code() != Some(1) {
         pass_entity = String::from_utf8(output.stdout)?.trim_end().to_owned();
@@ -98,12 +98,12 @@ pub fn passmenu(rofi_args: &HashMap<String, Option<String>>, pass_entries: &Vec<
                 rofi_args_mesg.remove("-mesg");
             }
 
-            let suboutput = run_rofi(&mut rofi_args_mesg, &pass_details)?;
+            let suboutput = run_rofi(&rofi_args_mesg, &pass_details)?;
             match suboutput.status.code() {
                 Some(1 | 11) => {
                     rofi_args_mesg.insert("-select".to_owned(), Some(pass_entity));
                     rofi_args_mesg.remove("-mesg");
-                    passmenu(&rofi_args_mesg, &pass_entries)?;
+                    passmenu(rofi_args_mesg, &pass_entries)?;
                 }
                 _ => {}
             }

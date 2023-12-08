@@ -14,6 +14,6 @@ fn main() -> BoxResult<()> {
     ]);
     let pass_entries = passwords()?;
 
-    passmenu(&rofi_args, &pass_entries)?;
+    passmenu(rofi_args, &pass_entries)?;
     Ok(())
 }
