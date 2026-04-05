@@ -1,6 +1,7 @@
 # Description
 
 A simple passmenu program using rofi.
+Supporting i3wm and Wayland.
 
 ## Dependencies
 

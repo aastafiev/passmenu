@@ -67,11 +67,35 @@ fn copy_pass(pass_line: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn copy_xsel(data: String) -> io::Result<()> {
+pub fn get_display_server() -> String {
+    if std::env::var("WAYLAND_DISPLAY").is_ok() {
+        return "wayland".to_string();
+    }
+
+    // 2. Check XDG_SESSION_TYPE
+    if let Ok(session_type) = std::env::var("XDG_SESSION_TYPE") {
+        return session_type.to_lowercase(); // Usually "wayland" or "x11"
+    }
+
+    // 3. Fallback to DISPLAY (X11)
+    if std::env::var("DISPLAY").is_ok() {
+        return "x11".to_string();
+    }
+
+    "unknown".to_string()
+}
+
+fn copy(data: String, is_wayland: bool) -> io::Result<()> {
     let mut child = process::Command::new("xsel")
         .args(["-b"])
         .stdin(process::Stdio::piped())
         .spawn()?;
+
+    if is_wayland {
+        child = process::Command::new("wl-copy")
+            .stdin(process::Stdio::piped())
+            .spawn()?;
+    }
 
     let mut stdin = child.stdin.take().expect("Failed to open stdin");
     std::thread::spawn(move || {
@@ -81,7 +105,11 @@ fn copy_xsel(data: String) -> io::Result<()> {
     Ok(())
 }
 
-pub fn passmenu(rofi_args: HashMap<String, Option<String>>, pass_entries: &Vec<String>) -> BoxResult<()> {
+pub fn passmenu(
+    rofi_args: HashMap<String, Option<String>>,
+    pass_entries: &Vec<String>,
+    is_wayland: bool,
+) -> BoxResult<()> {
     let output = run_rofi(&rofi_args, &pass_entries)?;
     let mut pass_entity = String::new();
     if output.status.code() != Some(1) {
@@ -103,7 +131,7 @@ pub fn passmenu(rofi_args: HashMap<String, Option<String>>, pass_entries: &Vec<S
                 Some(1 | 11) => {
                     rofi_args_mesg.insert("-select".to_owned(), Some(pass_entity));
                     rofi_args_mesg.remove("-mesg");
-                    passmenu(rofi_args_mesg, &pass_entries)?;
+                    passmenu(rofi_args_mesg, &pass_entries, is_wayland)?;
                 }
                 _ => {}
             }
@@ -112,7 +140,7 @@ pub fn passmenu(rofi_args: HashMap<String, Option<String>>, pass_entries: &Vec<S
             let parsed_parts = selected_line.split_once(": ");
             match parsed_parts {
                 Some((_, data_to_copy)) => {
-                    copy_xsel(data_to_copy.to_owned())?;
+                    copy(data_to_copy.to_owned(), is_wayland)?;
                 }
                 None => {}
             }

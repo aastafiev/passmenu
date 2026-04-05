@@ -1,4 +1,4 @@
-use passmenu::{passmenu, passwords, BoxResult};
+use passmenu::{passmenu, passwords, get_display_server, BoxResult};
 use std::collections::HashMap;
 
 fn main() -> BoxResult<()> {
@@ -13,7 +13,13 @@ fn main() -> BoxResult<()> {
         ("-i".to_owned(), None),
     ]);
     let pass_entries = passwords()?;
+    let display_server = get_display_server();
+    let is_wayland = match display_server.as_str() {
+        "wayland" => true,
+        "unknown" => return Err("Unknown display server".into()),
+        _ => false,
+    };
 
-    passmenu(rofi_args, &pass_entries)?;
+    passmenu(rofi_args, &pass_entries, is_wayland)?;
     Ok(())
 }
