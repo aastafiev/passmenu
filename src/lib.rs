@@ -86,16 +86,16 @@ pub fn get_display_server() -> String {
 }
 
 fn copy(data: String, is_wayland: bool) -> io::Result<()> {
-    let mut child = process::Command::new("xsel")
-        .args(["-b"])
+    let (program, args) = if is_wayland {
+        ("wl-copy", vec![])
+    } else {
+        ("xsel", vec!["-b"])
+    };
+
+    let mut child = process::Command::new(program)
+        .args(args)
         .stdin(process::Stdio::piped())
         .spawn()?;
-
-    if is_wayland {
-        child = process::Command::new("wl-copy")
-            .stdin(process::Stdio::piped())
-            .spawn()?;
-    }
 
     let mut stdin = child.stdin.take().expect("Failed to open stdin");
     std::thread::spawn(move || {
